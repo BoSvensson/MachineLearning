@@ -1,0 +1,97 @@
+---
+title: "Coursera's Machine Learning Course Assignment"
+output: html_document
+---
+   
+   
+### Background
+    
+Data were collected during a weight lifting exercise using accelerometer data on the belt, forearm, arm, and dumbbell of 6 participants. They were told to do the exercise in five different ways, only one of which was correct.
+The aim of this assignment is to find a machine learning algorithm that should help to identify the five different ways (labeled 'A' to 'E') by using the data from http://groupware.les.inf.puc-rio.br/har. 
+   
+### Data
+   
+```{r}   
+##First of all, the working directory is set
+
+```
+   
+The necessary libraries ("caret", "randomForest") are loaded:
+```{r}
+library(caret)
+library(randomForest)
+```
+Data are now collected from Coursera's website.
+  
+First, the original training-data are downloaded into the working directory:  
+```{r}  
+download.file("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile = "pml-training.csv")
+```
+  
+Second, the original test-data are downloaded as well:   
+```{r}
+download.file("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", destfile = "pml-testing.csv")
+```
+  
+### Cleaning Data  
+Both files are read into data frames, simultaneously converting empty values to NA's.
+  
+```{r}  
+trainData <- read.csv("pml-training.csv", header = T, na.strings= c("", NA))
+testData <- read.csv("pml-testing.csv", header = T, na.strings= c("", NA))
+```
+   
+The original training-data set consists of 160 columns.
+   
+```{r}
+ncol(trainData)
+```
+The first 7 columns contain meaningless information for the purpose of this study; only the remaining columns are transferred to a reduced data set.
+  
+```{r}
+reducedData <- trainData[, 8:160]
+
+```
+Furthermore, there are many columns with lots of NA's - all columns with NA's are deleted. The remaining 53 columns are the subject for the following procedures.
+   
+```{r}
+reducedData <- reducedData[,  colSums(is.na(reducedData))==0]
+ncol(reducedData)
+```
+  
+### Data Partition
+  
+The reduced data set is partitioned into a training- (60%) and test-set.
+  
+```{r}
+train <- createDataPartition(y=reducedData$classe, p=0.6, list=F)
+training <- reducedData[train, ]
+testing <- reducedData[-train, ]
+```
+  
+
+### The model: Random Forest
+  
+Due to the character of the features and the wish for high accuracy, Random Forest was taken as the method of choice for this study.  
+However, all attempts to use the train-function for this aim failed.
+Instead, the genuine randomForest-function succeeded immediately. To guarantee reproducibility, the seed was set first.
+  
+```{r}
+set.seed(1234)
+modelFit = randomForest(classe ~., data=training)
+modelFit
+```
+  
+```{r}  
+pred <- predict(modelFit, testing)
+confusionMatrix(pred, testing$classe)
+```
+   
+With an **out-of-sample accuracy** of over **99.3%**, the model proves to be highly accurate.
+This is underlined by the results of the model on the 20 test-cases, all of which were classified accurately.
+  
+```{r}  
+results = predict(modelFit, testData)
+results
+```
+
